@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="ha">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Arewa Chat</title>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; width: 100%; overflow: hidden; background: #0A1A0C; }
+#root { height: 100vh; width: 100vw; display: flex; justify-content: center; }
+input::placeholder { color: #6B8F6F; }
+::-webkit-scrollbar { display: none; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useRef, useEffect } = React;
+
+const SURL = "https://ieeysdbohhowfexlkfgt.supabase.co";
+const SKEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImllZXlzZGJvaGhvd2ZleGxrZmd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NDgxNDIsImV4cCI6MjA5NjEyNDE0Mn0.iAY3k_zK8qcuHgBI0GDvSeUtV1puW-E4WxrkWJVOlYI";
+
+const api = async (path, method="GET", body=null, tok=null) => {
+  try {
+    const res = await fetch(`${SURL}${path}`, {
+      method,
+      headers: {
+        "apikey": SKEY,
+        "Authorization": `Bearer ${tok||SKEY}`,
+        "Content-Type": "application/json",
+        "Prefer": method==="POST" ? "return=representation" : "",
+      },
+      body: body ? JSON.stringify(body) : null,
+    });
+    return res.json();
+  } catch(e) { return null; }
+};
+
+const C = {
+  bg:"#0A1A0C",bgCard:"#0F2211",bgInput:"#162E19",
+  green:"#2ECC71",greenDark:"#27AE60",gold:"#F4C430",
+  white:"#FFFFFF",offWhite:"#F0F7F1",
+  gray:"#6B8F6F",grayLight:"#9DC5A0",
+  online:"#00E676",danger:"#FF5252",
+};
+
+const Logo = ({size=40}) => (
+  React.createElement('svg', {width:size,height:size,viewBox:"0 0 100 100",fill:"none"},
+    React.createElement('defs',null,
+      React.createElement('linearGradient',{id:"bg1",x1:"0%",y1:"0%",x2:"100%",y2:"100%"},
+        React.createElement('stop',{offset:"0%",stopColor:"#2ECC71"}),
+        React.createElement('stop',{offset:"100%",stopColor:"#27AE60"})
+      ),
+      React.createElement('linearGradient',{id:"gd1",x1:"0%",y1:"0%",x2:"100%",y2:"100%"},
+        React.createElement('stop',{offset:"0%",stopColor:"#F4C430"}),
+        React.createElement('stop',{offset:"100%",stopColor:"#D4A017"})
+      )
+    ),
+    React.createElement('circle',{cx:50,cy:50,r:48,fill:"url(#bg1)"}),
+    React.createElement('rect',{x:18,y:22,width:60,height:42,rx:10,fill:"white"}),
+    React.createElement('path',{d:"M28 64 L20 78 L42 68 Z",fill:"white"}),
+    React.createElement('circle',{cx:35,cy:43,r:5,fill:"url(#gd1)"}),
+    React.createElement('circle',{cx:50,cy:43,r:5,fill:"url(#gd1)"}),
+    React.createElement('circle',{cx:65,cy:43,r:5,fill:"url(#gd1)"}),
+    React.createElement('circle',{cx:50,cy:50,r:47,stroke:"url(#gd1)",strokeWidth:2,fill:"none",opacity:0.5})
+  )
+);
+
+const FEED = [
+  {id:1,name:"Arewa Fashion Hub",badge:"🏪 Business",time:"Awa 2",emoji:"👗",bg:"#1A3A1A",body:"Sabon kayan Sallah sun iso! Hijabs, Abayas da Zane na zamani. DM don order! 🛒",likes:234,comments:45},
+  {id:2,name:"Dr. Amina Hassan",badge:"👩‍⚕️ Doctor",time:"Awa 4",emoji:"👩‍⚕️",bg:"#1A3A2A",body:"Kuna bukata ku sha ruwa sosai a lokacin zafi. Gilashi 8 a rana! 💚",likes:567,comments:89},
+  {id:3,name:"Malam Sani",badge:"🕌 Malami",time:"Awa 6",emoji:"👳",bg:"#2A2A1A",body:"Hadisi na yau: Duk wanda ya kawar da wahala daga wani Musulmi... Allahu Akbar! 🤲",likes:892,comments:134},
+];
+
+const PRODUCTS = [
+  {name:"Zane na Arewa",price:"₦15,000",emoji:"🧣",bg:"#1A3A1A",seller:"Khadija ✓"},
+  {name:"Kayan Ɗaki",price:"₦8,500",emoji:"🏺",bg:"#2A2A1A",seller:"Audu ✓"},
+  {name:"Hijab Premium",price:"₦4,200",emoji:"🧕",bg:"#1A3A2A",seller:"Fashion Hub ✓"},
+  {name:"Littafi Hausa",price:"₦2,000",emoji:"📚",bg:"#1A2A3A",seller:"Malam Sani ✓"},
+];
+
+const STORIES = [
+  {name:"Khadija",emoji:"👩",bg:"linear-gradient(135deg,#1A4020,#0D1A0E)"},
+  {name:"Audu",emoji:"👨",bg:"linear-gradient(135deg,#2A3010,#0D1A0E)"},
+  {name:"Maryam",emoji:"👩‍🦱",bg:"linear-gradient(135deg,#3A2010,#0D1A0E)"},
+  {name:"Fashion",emoji:"👗",bg:"linear-gradient(135deg,#3A1A20,#0D1A0E)"},
+  {name:"Dr. Amina",emoji:"👩‍⚕️",bg:"linear-gradient(135deg,#1A2A40,#0D1A0E)"},
+  {name:"News",emoji:"📰",bg:"linear-gradient(135deg,#1A3A3A,#0D1A0E)"},
+];
+
+const avatarColors = ["#1A5C30","#2A4C10","#3A2C10","#1A2C4C","#3A1C2C"];
+
+// INPUT COMPONENT with show/hide password
+function Input({label, placeholder, value, onChange, type="text", showToggle=false}) {
+  const [show, setShow] = useState(false);
+  return React.createElement('div', {style:{marginBottom:4}},
+    React.createElement('div', {style:{fontSize:13,color:C.grayLight,marginBottom:6,fontWeight:600}}, label),
+    React.createElement('div', {style:{position:"relative"}},
+      React.createElement('input', {
+        style:{width:"100%",background:C.bgInput,border:"1px solid rgba(46,204,113,0.2)",borderRadius:14,padding:"13px 16px",paddingRight:showToggle?"44px":"16px",fontSize:15,color:C.white,outline:"none"},
+        placeholder, value, onChange,
+        type: showToggle ? (show ? "text" : "password") : type
+      }),
+      showToggle && React.createElement('button', {
+        style:{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",fontSize:18,color:C.gray,padding:0},
+        onClick:()=>setShow(!show),
+        type:"button"
+      }, show ? "🙈" : "👁️")
+    )
+  );
+}
+
+function App() {
+  const [screen, setScreen] = useState("splash");
+  const [token, setToken] = useState(null);
+  const [userId, setUserId] = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  // Auth fields
+  const [loginType, setLoginType] = useState("email"); // email or phone
+  const [regType, setRegType] = useState("email");
+  const [emailOrPhone, setEmailOrPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [suna, setSuna] = useState("");
+  const [username, setUsername] = useState("");
+  const [regEmailOrPhone, setRegEmailOrPhone] = useState("");
+  const [regPassword, setRegPassword] = useState("");
+
+  const [users, setUsers] = useState([]);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [chats, setChats] = useState({});
+  const [newMsg, setNewMsg] = useState("");
+  const [bottomTab, setBottomTab] = useState("sakonnin");
+  const [topTab, setTopTab] = useState("labaran");
+
+  useEffect(() => {
+    const t = setTimeout(() => setScreen("login"), 2500);
+    return () => clearTimeout(t);
+  }, []);
+
+  const loadUsers = async (tok, uid) => {
+    const data = await api("/rest/v1/profiles?select=*", "GET", null, tok);
+    if (Array.isArray(data)) setUsers(data.filter(u => u.id !== uid));
+  };
+
+  const getEmail = (val, type) => {
+    if (type === "phone") return val.replace(/\s/g,"") + "@arewachat.app";
+    return val;
+  };
+
+  const doRegister = async () => {
+    if (!suna||!username||!regEmailOrPhone||!regPassword) { setError("Cika duk filayen!"); return; }
+    if (regPassword.length < 6) { setError("Kalmar sirri haruffa 6 ko fiye!"); return; }
+    setLoading(true); setError("");
+    const email = getEmail(regEmailOrPhone, regType);
+    const d = await api("/auth/v1/signup", "POST", {email, password:regPassword});
+    if (!d || !d.access_token) {
+      // Try login if already exists
+      const d2 = await api("/auth/v1/token?grant_type=password", "POST", {email, password:regPassword});
+      if (!d2 || !d2.access_token) { setError("Kuskure! Gwada wani " + (regType==="email"?"email":"lambar waya")); setLoading(false); return; }
+      setToken(d2.access_token); setUserId(d2.user.id);
+      setProfile({suna, username:username.toLowerCase()});
+      await loadUsers(d2.access_token, d2.user.id);
+      setScreen("main"); setLoading(false); return;
+    }
+    const tok = d.access_token;
+    const uid = d.user.id;
+    await api("/rest/v1/profiles", "POST", {id:uid, suna, username:username.toLowerCase(), online:true}, tok);
+    setToken(tok); setUserId(uid);
+    setProfile({suna, username:username.toLowerCase()});
+    await loadUsers(tok, uid);
+    setScreen("main"); setLoading(false);
+  };
+
+  const doLogin = async () => {
+    if (!emailOrPhone||!password) { setError("Cika filayen!"); return; }
+    setLoading(true); setError("");
+    const email = getEmail(emailOrPhone, loginType);
+    const d = await api("/auth/v1/token?grant_type=password", "POST", {email, password});
+    if (!d || !d.access_token) { setError("Ba daidai ba! Duba " + (loginType==="email"?"email":"lambar waya") + " da kalmar sirri"); setLoading(false); return; }
+    const tok = d.access_token;
+    const uid = d.user.id;
+    setToken(tok); setUserId(uid);
+    const profs = await api("/rest/v1/profiles?select=*", "GET", null, tok);
+    if (Array.isArray(profs)) {
+      const me = profs.find(p => p.id === uid);
+      if (me) setProfile(me);
+      setUsers(profs.filter(u => u.id !== uid));
+    }
+    setScreen("main"); setLoading(false);
+  };
+
+  const sendMsg = async () => {
+    if (!newMsg.trim()||!selectedUser) return;
+    const msg = {id:Date.now(), text:newMsg.trim(), isMe:true, time:new Date().toLocaleTimeString("en",{hour:"2-digit",minute:"2-digit",hour12:false})};
+    setChats(prev => ({...prev, [selectedUser.id]: [...(prev[selectedUser.id]||[]), msg]}));
+    setNewMsg("");
+    if (token) await api("/rest/v1/messages", "POST", {sender_id:userId, receiver_id:selectedUser.id, content:msg.text, karanta:false}, token);
+  };
+
+  const W = {width:"100%",maxWidth:"100vw",height:"100vh",background:C.bg,color:C.white,display:"flex",flexDirection:"column",overflow:"hidden",fontFamily:"'Segoe UI',sans-serif"};
+
+  const ToggleType = ({type, setType, options}) => React.createElement('div', {
+    style:{display:"flex",background:C.bgInput,borderRadius:12,padding:3,marginBottom:16,border:"1px solid rgba(46,204,113,0.15)"}
+  },
+    options.map(([key,label]) => React.createElement('button', {
+      key,
+      style:{flex:1,padding:"8px",borderRadius:10,border:"none",cursor:"pointer",fontSize:13,fontWeight:700,
+        background:type===key?"linear-gradient(135deg,#2ECC71,#27AE60)":"transparent",
+        color:type===key?C.white:C.gray,transition:"all 0.2s"},
+      onClick:()=>setType(key)
+    }, label))
+  );
+
+  // SPLASH
+  if (screen==="splash") return (
+    <div style={W}>
+      <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:20,background:"linear-gradient(160deg,#0F2211,#0A1A0C)"}}>
+        <Logo size={110}/>
+        <div style={{fontSize:40,fontWeight:900,background:"linear-gradient(135deg,#2ECC71,#F4C430)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>Arewa Chat</div>
+        <div style={{fontSize:14,color:C.gray,textAlign:"center"}}>Sadarwa mai sauƙi • Kasance kusa da jama'arka</div>
+        <div style={{width:180,height:3,background:"#162E19",borderRadius:2,marginTop:10,overflow:"hidden"}}>
+          <div style={{height:"100%",width:"65%",background:"linear-gradient(90deg,#2ECC71,#F4C430)",borderRadius:2}}/>
+        </div>
+        <div style={{fontSize:11,color:C.gray}}>An gina da ❤️ don Arewa</div>
+      </div>
+    </div>
+  );
+
+  // LOGIN
+  if (screen==="login") return (
+    <div style={W}>
+      <div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"center",padding:"0 24px",gap:14,overflowY:"auto"}}>
+        <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:12,marginBottom:8}}>
+          <Logo size={70}/>
+          <div style={{fontSize:28,fontWeight:900,color:C.white}}>Arewa Chat</div>
+          <div style={{fontSize:14,color:C.gray}}>Shiga asusunka</div>
+        </div>
+        {error && <div style={{color:C.danger,textAlign:"center",fontSize:13,background:"rgba(255,82,82,0.1)",padding:"8px 12px",borderRadius:10}}>{error}</div>}
+        
+        <ToggleType type={loginType} setType={setLoginType} options={[["email","📧 Email"],["phone","📱 Lambar Waya"]]}/>
+        
+        <Input 
+          label={loginType==="email" ? "📧 Email" : "📱 Lambar Waya"}
+          placeholder={loginType==="email" ? "misali@gmail.com" : "08012345678"}
+          value={emailOrPhone}
+          onChange={e=>setEmailOrPhone(e.target.value)}
+          type={loginType==="email" ? "email" : "tel"}
+        />
+        <Input label="🔒 Kalmar Sirri" placeholder="••••••••" value={password} onChange={e=>setPassword(e.target.value)} showToggle={true}/>
+        
+        <button style={{background:"linear-gradient(135deg,#2ECC71,#27AE60)",border:"none",borderRadius:14,padding:"16px",fontSize:16,fontWeight:800,color:C.white,cursor:"pointer",width:"100%",boxShadow:"0 4px 20px rgba(46,204,113,0.4)",marginTop:4}} onClick={doLogin} disabled={loading}>
+          {loading ? "Yana shiga..." : "Shiga →"}
+        </button>
+        <div style={{textAlign:"center",color:C.gray,fontSize:14,cursor:"pointer"}} onClick={()=>{setScreen("register");setError("");}}>
+          Babu asusu? <span style={{color:C.green,fontWeight:700}}>Yi Rajista</span>
+        </div>
+      </div>
+    </div>
+  );
+
+  // REGISTER
+  if (screen==="register") return (
+    <div style={W}>
+      <div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"center",padding:"0 24px",gap:12,overflowY:"auto"}}>
+        <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:10,marginBottom:4}}>
+          <Logo size={60}/>
+          <div style={{fontSize:26,fontWeight:900,color:C.white}}>Sabon Asusu</div>
+          <div style={{fontSize:13,color:C.gray}}>Shiga dangin Arewa Chat</div>
+        </div>
+        {error && <div style={{color:C.danger,textAlign:"center",fontSize:13,background:"rgba(255,82,82,0.1)",padding:"8px 12px",borderRadius:10}}>{error}</div>}
+        
+        <ToggleType type={regType} setType={setRegType} options={[["email","📧 Email"],["phone","📱 Lambar Waya"]]}/>
+        
+        <Input label="👤 Sunanka" placeholder="Sunan gaskiya" value={suna} onChange={e=>setSuna(e.target.value)}/>
+        <Input label="🏷️ Username" placeholder="@username" value={username} onChange={e=>setUsername(e.target.value)}/>
+        <Input 
+          label={regType==="email" ? "📧 Email" : "📱 Lambar Waya"}
+          placeholder={regType==="email" ? "misali@gmail.com" : "08012345678"}
+          value={regEmailOrPhone}
+          onChange={e=>setRegEmailOrPhone(e.target.value)}
+          type={regType==="email" ? "email" : "tel"}
+        />
+        <Input label="🔒 Kalmar Sirri" placeholder="Haruffa 6 ko fiye" value={regPassword} onChange={e=>setRegPassword(e.target.value)} showToggle={true}/>
+        
+        <button style={{background:"linear-gradient(135deg,#2ECC71,#27AE60)",border:"none",borderRadius:14,padding:"16px",fontSize:16,fontWeight:800,color:C.white,cursor:"pointer",width:"100%",boxShadow:"0 4px 20px rgba(46,204,113,0.4)",marginTop:4}} onClick={doRegister} disabled={loading}>
+          {loading ? "Ana ƙirƙira..." : "Yi Rajista ✓"}
+        </button>
+        <div style={{textAlign:"center",color:C.gray,fontSize:14,cursor:"pointer"}} onClick={()=>{setScreen("login");setError("");}}>
+          Kana da asusu? <span style={{color:C.green,fontWeight:700}}>Shiga</span>
+        </div>
+      </div>
+    </div>
+  );
+
+  // CHAT SCREEN
+  if (screen==="chat"&&selectedUser) {
+    const msgs = chats[selectedUser.id]||[];
+    return (
+      <div style={W}>
+        <div style={{background:C.bgCard,padding:"12px 16px",display:"flex",alignItems:"center",gap:12,borderBottom:"1px solid rgba(46,204,113,0.1)",flexShrink:0}}>
+          <button style={{background:"none",border:"none",color:C.green,fontSize:30,cursor:"pointer",lineHeight:1,padding:0}} onClick={()=>setScreen("main")}>‹</button>
+          <div style={{width:42,height:42,borderRadius:21,background:selectedUser.color||avatarColors[0],display:"flex",alignItems:"center",justifyContent:"center",fontSize:17,fontWeight:800,color:C.white,flexShrink:0}}>{(selectedUser.suna||"?")[0].toUpperCase()}</div>
+          <div style={{flex:1}}>
+            <div style={{fontSize:15,fontWeight:700,color:C.white}}>{selectedUser.suna}</div>
+            <div style={{fontSize:11,color:selectedUser.online?C.online:C.gray}}>{selectedUser.online?"● Online":"○ Offline"}</div>
+          </div>
+          <span style={{fontSize:22,cursor:"pointer"}}>📞</span>
+        </div>
+        <div style={{flex:1,overflowY:"auto",padding:"12px 16px",display:"flex",flexDirection:"column",gap:8}}>
+          {msgs.length===0&&(
+            <div style={{textAlign:"center",color:C.gray,marginTop:60}}>
+              <div style={{fontSize:50,marginBottom:12}}>👋</div>
+              <div style={{fontSize:16,fontWeight:700,color:C.white}}>Fara tattaunawa!</div>
+              <div style={{fontSize:13,marginTop:6}}>Ka aika sako ga {selectedUser.suna}</div>
+            </div>
+          )}
+          {msgs.map(m=>(
+            <div key={m.id} style={{alignSelf:m.isMe?"flex-end":"flex-start",background:m.isMe?C.green:C.bgCard,borderRadius:m.isMe?"18px 18px 4px 18px":"18px 18px 18px 4px",padding:"10px 14px",maxWidth:"75%",fontSize:14,color:C.white,wordBreak:"break-word",border:m.isMe?"none":"1px solid rgba(46,204,113,0.15)"}}>
+              {m.text}
+              <div style={{fontSize:10,color:"rgba(255,255,255,0.5)",marginTop:4,textAlign:"right"}}>{m.time}{m.isMe&&" ✓✓"}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{padding:"10px 16px",background:C.bgCard,display:"flex",gap:10,borderTop:"1px solid rgba(46,204,113,0.1)",flexShrink:0}}>
+          <input style={{flex:1,background:C.bgInput,border:"1px solid rgba(46,204,113,0.2)",borderRadius:24,padding:"11px 16px",fontSize:14,color:C.white,outline:"none"}} placeholder="Rubuta sako..." value={newMsg} onChange={e=>setNewMsg(e.target.value)} onKeyPress={e=>e.key==="Enter"&&sendMsg()}/>
+          <button style={{width:44,height:44,borderRadius:22,background:"linear-gradient(135deg,#2ECC71,#27AE60)",border:"none",cursor:"pointer",fontSize:16,color:C.white,flexShrink:0}} onClick={sendMsg}>➤</button>
+        </div>
+      </div>
+    );
+  }
+
+  // MAIN
+  const renderContent = () => {
+    if (bottomTab==="sakonnin") return (
+      <div>
+        {users.length===0?(
+          <div style={{textAlign:"center",padding:"60px 20px",color:C.gray}}>
+            <div style={{fontSize:50,marginBottom:16}}>👥</div>
+            <div style={{fontSize:16,fontWeight:700,color:C.white}}>Babu masu amfani tukuna</div>
+            <div style={{fontSize:13,marginTop:8}}>Ka gayyaci abokai su yi rajista!</div>
+          </div>
+        ):users.map((u,i)=>(
+          <div key={u.id||i} style={{display:"flex",alignItems:"center",padding:"13px 20px",gap:13,borderBottom:"1px solid rgba(46,204,113,0.06)",cursor:"pointer"}} onClick={()=>{setSelectedUser({...u,color:avatarColors[i%5]});setScreen("chat");}}>
+            <div style={{position:"relative",flexShrink:0}}>
+              <div style={{width:50,height:50,borderRadius:25,background:avatarColors[i%5],display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,fontWeight:800,color:C.white}}>{(u.suna||"?")[0].toUpperCase()}</div>
+              <div style={{position:"absolute",bottom:1,right:1,width:13,height:13,borderRadius:7,background:u.online?C.online:C.gray,border:`2px solid ${C.bg}`}}/>
+            </div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:3}}>
+                <span style={{fontSize:15,fontWeight:700,color:C.white}}>{u.suna}</span>
+                {u.business&&<span style={{fontSize:9,background:"linear-gradient(135deg,#2ECC71,#27AE60)",color:C.white,borderRadius:6,padding:"1px 6px",fontWeight:800}}>🏪</span>}
+              </div>
+              <div style={{fontSize:12,color:C.gray}}>@{u.username}</div>
+            </div>
+            <div style={{textAlign:"right",flexShrink:0}}>
+              <div style={{color:u.online?C.online:C.gray,fontSize:11,marginBottom:4}}>{u.online?"● Online":"○ Offline"}</div>
+              <div style={{fontSize:18,color:C.gray}}>›</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+
+    if (bottomTab==="nemo") {
+      if (topTab==="labaran") return (
+        <div style={{paddingBottom:20}}>
+          {FEED.map(p=>(
+            <div key={p.id} style={{background:C.bgCard,margin:"8px 12px",borderRadius:16,padding:"14px",border:"1px solid rgba(46,204,113,0.08)"}}>
+              <div style={{display:"flex",gap:10,marginBottom:10,alignItems:"center"}}>
+                <div style={{width:40,height:40,borderRadius:20,background:p.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{p.emoji}</div>
+                <div style={{flex:1}}>
+                  <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+                    <span style={{fontSize:14,fontWeight:700,color:C.white}}>{p.name}</span>
+                    <span style={{fontSize:9,background:"linear-gradient(135deg,#F4C430,#D4A017)",color:"#0A1A0C",borderRadius:8,padding:"2px 7px",fontWeight:800}}>{p.badge}</span>
+                  </div>
+                  <div style={{fontSize:11,color:C.gray}}>{p.time} da suka wuce</div>
+                </div>
+              </div>
+              <div style={{fontSize:14,color:C.offWhite,lineHeight:1.6,marginBottom:12}}>{p.body}</div>
+              <div style={{display:"flex",gap:20,borderTop:"1px solid rgba(46,204,113,0.08)",paddingTop:10}}>
+                {[["❤️",p.likes],["💬",p.comments],["↗️","Raba"]].map(([icon,count])=>(
+                  <span key={icon} style={{color:C.gray,fontSize:13,cursor:"pointer"}}>{icon} {count}</span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+      if (topTab==="yanayi") return (
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,padding:12}}>
+          {STORIES.map((st,i)=>(
+            <div key={i} style={{background:st.bg,borderRadius:16,padding:"14px 10px",display:"flex",flexDirection:"column",alignItems:"center",gap:8,border:"2px solid rgba(244,196,48,0.2)",cursor:"pointer",minHeight:120,justifyContent:"flex-end"}}>
+              <div style={{fontSize:32}}>{st.emoji}</div>
+              <div style={{fontSize:11,fontWeight:700,color:C.white,textAlign:"center"}}>{st.name}</div>
+            </div>
+          ))}
+        </div>
+      );
+      if (topTab==="kasuwa") return (
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,padding:12}}>
+          {PRODUCTS.map((p,i)=>(
+            <div key={i} style={{background:C.bgCard,borderRadius:14,overflow:"hidden",border:"1px solid rgba(46,204,113,0.1)"}}>
+              <div style={{height:110,display:"flex",alignItems:"center",justifyContent:"center",fontSize:44,background:p.bg}}>{p.emoji}</div>
+              <div style={{padding:"10px 12px"}}>
+                <div style={{fontSize:13,fontWeight:700,color:C.white,marginBottom:4}}>{p.name}</div>
+                <div style={{fontSize:14,fontWeight:800,color:C.gold,marginBottom:4}}>{p.price}</div>
+                <div style={{fontSize:11,color:C.gray}}>🏪 {p.seller}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    if (bottomTab==="kira") return (
+      <div>
+        {[
+          {name:"Khadija Musa",type:"📞 Shigowa",time:"Yau 09:20",emoji:"👩",color:"#1A5C30"},
+          {name:"Ibrahim Yusuf",type:"📞 Fita",time:"Yau 08:45",emoji:"👨",color:"#1A2C4C"},
+          {name:"Maryam",type:"📹 Video",time:"Jiya 15:30",emoji:"👩‍🦱",color:"#3A2C10"},
+        ].map((c,i)=>(
+          <div key={i} style={{display:"flex",alignItems:"center",padding:"13px 20px",gap:13,borderBottom:"1px solid rgba(46,204,113,0.06)"}}>
+            <div style={{width:46,height:46,borderRadius:23,background:c.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,color:C.white,flexShrink:0}}>{c.emoji}</div>
+            <div style={{flex:1}}>
+              <div style={{fontSize:15,fontWeight:700,color:C.white,marginBottom:3}}>{c.name}</div>
+              <div style={{fontSize:12,color:c.type.includes("Shigowa")?C.green:C.gold}}>{c.type}</div>
+            </div>
+            <div style={{textAlign:"right"}}>
+              <div style={{fontSize:11,color:C.gray,marginBottom:8}}>{c.time}</div>
+              <div style={{fontSize:22}}>📞</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+
+    if (bottomTab==="kundinka") return (
+      <div>
+        <div style={{background:"linear-gradient(160deg,#1A4020,#0A1A0C)",padding:"28px 20px",display:"flex",flexDirection:"column",alignItems:"center",gap:10}}>
+          <div style={{width:80,height:80,borderRadius:40,background:"linear-gradient(135deg,#2ECC71,#27AE60)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32,border:"3px solid #F4C430",fontWeight:900,color:C.white}}>
+            {profile ? profile.suna[0].toUpperCase() : "A"}
+          </div>
+          <div style={{fontSize:22,fontWeight:900,color:C.white}}>{profile?.suna||"User"}</div>
+          <div style={{fontSize:14,color:C.gray}}>@{profile?.username||"user"}</div>
+          <div style={{display:"flex",gap:28,marginTop:6}}>
+            {[["0","Aboki"],["0","Masu Bi"],["0","Posts"]].map(([n,l])=>(
+              <div key={l} style={{textAlign:"center"}}>
+                <div style={{fontSize:18,fontWeight:800,color:C.gold}}>{n}</div>
+                <div style={{fontSize:11,color:C.gray}}>{l}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        {[["✏️","Gyara Profile"],["🏪","Business Profile"],["📊","Analytics"],["🔔","Sanarwa"],["🔒","Privacy"],["❓","Taimako"]].map(([icon,label])=>(
+          <div key={label} style={{display:"flex",alignItems:"center",gap:14,padding:"15px 20px",borderBottom:"1px solid rgba(46,204,113,0.06)",cursor:"pointer"}}>
+            <span style={{fontSize:20}}>{icon}</span>
+            <span style={{fontSize:15,fontWeight:600,flex:1,color:C.white}}>{label}</span>
+            <span style={{color:C.gray,fontSize:18}}>›</span>
+          </div>
+        ))}
+        <div style={{display:"flex",alignItems:"center",gap:14,padding:"15px 20px",cursor:"pointer"}} onClick={()=>{setScreen("login");setToken(null);setUserId(null);setProfile(null);setUsers([]);}}>
+          <span style={{fontSize:20}}>🚪</span>
+          <span style={{fontSize:15,fontWeight:600,color:C.danger}}>Fita</span>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div style={W}>
+      <div style={{background:C.bgCard,padding:"12px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid rgba(46,204,113,0.1)",flexShrink:0}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <Logo size={32}/>
+          <div style={{fontSize:20,fontWeight:900,background:"linear-gradient(135deg,#2ECC71,#F4C430)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>Arewa Chat</div>
+        </div>
+        <div style={{display:"flex",gap:14,alignItems:"center"}}>
+          <span style={{fontSize:14,color:C.grayLight}}>{profile?.suna?.split(" ")[0]||""}</span>
+          <span style={{fontSize:20,cursor:"pointer"}}>🔍</span>
+        </div>
+      </div>
+
+      {bottomTab==="nemo"&&(
+        <div style={{display:"flex",background:C.bgCard,borderBottom:"1px solid rgba(46,204,113,0.1)",flexShrink:0}}>
+          {[["yanayi","Yanayi"],["labaran","Labaran Duniya"],["kasuwa","Kasuwa"]].map(([k,l])=>(
+            <div key={k} style={{flex:1,padding:"9px 4px",textAlign:"center",fontSize:11,fontWeight:700,cursor:"pointer",color:topTab===k?C.gold:C.gray,position:"relative"}} onClick={()=>setTopTab(k)}>
+              {l}
+              {topTab===k&&<div style={{position:"absolute",bottom:0,left:"15%",width:"70%",height:2,background:"linear-gradient(90deg,#2ECC71,#F4C430)",borderRadius:2}}/>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div style={{flex:1,overflowY:"auto"}}>{renderContent()}</div>
+
+      <button style={{position:"absolute",bottom:75,right:16,width:50,height:50,borderRadius:25,background:"linear-gradient(135deg,#2ECC71,#F4C430)",border:"none",fontSize:20,cursor:"pointer",boxShadow:"0 4px 20px rgba(46,204,113,0.5)",zIndex:10,color:C.white}}>✏️</button>
+
+      <div style={{background:C.bgCard,display:"flex",padding:"8px 0 14px",borderTop:"1px solid rgba(46,204,113,0.12)",flexShrink:0}}>
+        {[{key:"nemo",icon:"🔍",label:"Nemo"},{key:"sakonnin",icon:"💬",label:"Saƙonni"},{key:"kira",icon:"📞",label:"Kira"},{key:"kundinka",icon:"👤",label:"Kundinka"}].map(item=>(
+          <div key={item.key} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3,cursor:"pointer"}} onClick={()=>setBottomTab(item.key)}>
+            <span style={{fontSize:22,opacity:bottomTab===item.key?1:0.4}}>{item.icon}</span>
+            <span style={{fontSize:10,fontWeight:700,color:bottomTab===item.key?C.green:C.gray}}>{item.label}</span>
+            {bottomTab===item.key&&<div style={{width:4,height:4,borderRadius:2,background:C.green}}/>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+</script>
+</body>
+</html>
