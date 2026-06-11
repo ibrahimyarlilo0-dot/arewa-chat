@@ -194,7 +194,21 @@ function App() {
     }
     setScreen("main"); setLoading(false);
   };
-
+const loadMessages = async (otherId) => {
+    if (!token) return;
+    const data = await api(`/rest/v1/messages?or=(and(sender_id.eq.${userId},receiver_id.eq.${otherId}),and(sender_id.eq.${otherId},receiver_id.eq.${userId}))&order=created_at.asc`, "GET", null, token);
+    if (Array.isArray(data)) {
+      const formatted = data.map(m => ({id:m.id, text:m.content, isMe:m.sender_id===userId, time:new Date(m.created_at).toLocaleTimeString("en",{hour:"2-digit",minute:"2-digit",hour12:false})}));
+      setChats(prev => ({...prev, [otherId]: formatted}));
+    }
+  };
+  useEffect(() => {
+    if (selectedUser && screen==="chat") {
+      loadMessages(selectedUser.id);
+      const iv = setInterval(()=>loadMessages(selectedUser.id), 3000);
+      return ()=>clearInterval(iv);
+    }
+  }, [selectedUser, screen]);
   const sendMsg = async () => {
     if (!newMsg.trim()||!selectedUser) return;
     const msg = {id:Date.now(), text:newMsg.trim(), isMe:true, time:new Date().toLocaleTimeString("en",{hour:"2-digit",minute:"2-digit",hour12:false})};
