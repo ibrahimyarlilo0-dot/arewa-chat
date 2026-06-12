@@ -159,6 +159,7 @@ function App() {
     setLoading(true); setError("");
     const email = getEmail(regEmailOrPhone, regType);
     const d = await api("/auth/v1/signup", "POST", {email, password:regPassword});
+    alert("RESULT: " + JSON.stringify(d));
     if (!d || !d.access_token) {
       // Try login if already exists
       const d2 = await api("/auth/v1/token?grant_type=password", "POST", {email, password:regPassword});
