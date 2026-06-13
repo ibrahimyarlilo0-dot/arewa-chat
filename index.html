@@ -182,8 +182,7 @@ function App() {
 
     // Try signup
     const signup = await api("/auth/v1/signup", "POST", {email, password:regPassword});
-
-    if (signup.ok && signup.data && signup.data.id) {
+    alert("SIGNUP RESULT: " + JSON.stringify(signup));alertif (signup.ok && signup.data && signup.data.id) {
       const uid = signup.data.id;
       await api("/rest/v1/profiles", "POST", {id:uid, suna:suna.trim(), username:username.trim().toLowerCase(), online:true}, null);
       setUserId(uid);
